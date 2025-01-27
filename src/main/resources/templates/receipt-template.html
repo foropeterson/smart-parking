@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 300px; /* Standard receipt width */
+            padding: 20px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 18px;
+            color: #2e6c80;
+            margin-bottom: 5px;
+        }
+
+        h3 {
+            text-align: center;
+            font-size: 14px;
+            color: #555;
+            margin-top: -10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        table th, table td {
+            font-size: 12px; /* Small text for receipt */
+            border: none; /* Remove borders for a clean receipt look */
+            padding: 4px 0;
+        }
+
+        table th {
+            text-align: left;
+            color: #333;
+        }
+
+        table td {
+            text-align: right;
+            color: #555;
+        }
+
+        .footer {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 20px;
+            color: #555;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        .greeting {
+            font-size: 14px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+<p class="greeting">Hello <span th:text="${username}"></span>,</p>
+<p class="greeting">Your payment for the parking has been received. See the parking details below:</p>
+<div class="container">
+    <h1>Parking Receipt</h1>
+    <hr>
+    <table>
+        <tr>
+            <th>Vehicle No:</th>
+            <td th:text="${vehicleNumber}"></td>
+        </tr>
+        <tr>
+            <th>Status:</th>
+            <td>PAID</td>
+        </tr>
+        <tr>
+            <th>Date:</th>
+            <td th:text="${date}"></td>
+        </tr>
+        <tr>
+            <th>Start Time:</th>
+            <td th:text="${startTime}"></td>
+        </tr>
+        <tr>
+            <th>End Time:</th>
+            <td th:text="${endTime}"></td>
+        </tr>
+        <tr>
+            <th>Total Duration:</th>
+            <td th:text="${parkingDuration} + ' hours'"></td>
+        </tr>
+        <tr>
+            <th>Spot Number:</th>
+            <td th:text="${parkingSpot}"></td>
+        </tr>
+        <tr>
+            <th>Spot Location:</th>
+            <td th:text="${spotLocation}"></td>
+        </tr>
+        <tr>
+            <th>Amount Paid:</th>
+            <td th:text="${amount} + ' USD'"></td>
+        </tr>
+    </table>
+</div>
+    <p>Thank you for parking with us!</p>
+    <p>Visit us again. Drive safely!</p>
+</body>
+</html>

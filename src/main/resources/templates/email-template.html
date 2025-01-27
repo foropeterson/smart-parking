@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Email Notification</title>
+</head>
+<body>
+<h1>Hello, <span th:text="${username}"></span>!</h1>
+<p>Your parking session has ended. You have a grace period of <span th:text="${gracePeriod}"></span> to exit the parking lot.</p>
+<p>If you fail to exit within this grace period, additional fines will apply.</p>
+<p>Thank you for using our parking system!</p>
+<p>Best Regards,<br/>The Smart Parking Team</p>
+</body>
+</html>

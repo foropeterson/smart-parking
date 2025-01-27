@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smart-parking-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/smart_parking_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root1000
+    depends_on:
+      - db
+    networks:
+      - smart-parking-network
+
+  db:
+    image: mysql:8.0
+    container_name: smart-parking-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root1000
+      MYSQL_DATABASE: smart_parking_db
+    ports:
+      - "3306:8909"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - smart-parking-network
+
+volumes:
+  mysql-data:
+networks:
+  smart-parking-network:
