@@ -37,7 +37,7 @@ Before running the project, make sure you have the following installed:
 1. Clone the repository to your local machine:
 
     ```bash
-    git clone https://github.com/your-username/smart-parking-app.git
+    git clone https://github.com/foropeterson/smart-parking.git
     cd smart-parking-app
     ```
 
