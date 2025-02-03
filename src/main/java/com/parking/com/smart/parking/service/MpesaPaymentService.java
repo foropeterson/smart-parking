@@ -1,3 +1,4 @@
+
 package com.parking.com.smart.parking.service;
 
 import com.parking.com.smart.parking.entities.*;
@@ -51,14 +52,16 @@ public class MpesaPaymentService {
     private final PaymentRepository paymentRepository;
     private final ParkingSpotRepository parkingSpotRepository;
     private final EmailService emailService;
+    private final AuditLogService auditLogService;
 
     public MpesaPaymentService(RestTemplate restTemplate, BookingRepository bookingRepository,
-                               PaymentRepository paymentRepository, ParkingSpotRepository parkingSpotRepository, EmailService emailService) {
+                               PaymentRepository paymentRepository, ParkingSpotRepository parkingSpotRepository, EmailService emailService, AuditLogService auditLogService) {
         this.restTemplate = restTemplate;
         this.bookingRepository = bookingRepository;
         this.paymentRepository = paymentRepository;
         this.parkingSpotRepository = parkingSpotRepository;
         this.emailService = emailService;
+        this.auditLogService = auditLogService;
     }
 
     public ApiResponse processMpesaPayment(Long bookingId, MPaymentRequest request) {
@@ -108,6 +111,7 @@ public class MpesaPaymentService {
             if (stkPushResponse == null || !"0".equals(stkPushResponse.getResponseCode())) {
                 return new ApiResponse("500", "Failed to initiate payment", stkPushResponse);
             }
+
             Thread.sleep(10000);
             PaymentStatusRequest paymentStatusRequest = new PaymentStatusRequest(
                     businessShortCode,
@@ -116,16 +120,41 @@ public class MpesaPaymentService {
                     stkPushResponse.getCheckoutRequestID()
             );
             HttpEntity<PaymentStatusRequest> queryRequestEntity = new HttpEntity<>(paymentStatusRequest, headers);
-            ResponseEntity<PaymentStatusResponse> paymentStatusResponseEntity = restTemplate.postForEntity(
-                    queryUrlEndpoint,
-                    queryRequestEntity,
-                    PaymentStatusResponse.class
-            );
+
+            ResponseEntity<PaymentStatusResponse> paymentStatusResponseEntity;
+
+            try {
+                // First attempt
+                paymentStatusResponseEntity = restTemplate.postForEntity(
+                        queryUrlEndpoint,
+                        queryRequestEntity,
+                        PaymentStatusResponse.class
+                );
+            } catch (HttpClientErrorException | HttpServerErrorException ex) {
+                // Retry once
+                System.out.println("Payment verification failed, retrying...");
+                try {
+                    Thread.sleep(5000); // Wait before retrying
+                    paymentStatusResponseEntity = restTemplate.postForEntity(
+                            queryUrlEndpoint,
+                            queryRequestEntity,
+                            PaymentStatusResponse.class
+                    );
+                } catch (HttpClientErrorException | HttpServerErrorException retryEx) {
+                    return new ApiResponse(
+                            String.valueOf(retryEx.getStatusCode().value()),
+                            "HTTP error occurred even after retry: " + retryEx.getMessage(),
+                            null
+                    );
+                }
+            }
 
             PaymentStatusResponse paymentStatusResponse = paymentStatusResponseEntity.getBody();
             if (paymentStatusResponse == null || !"0".equals(paymentStatusResponse.getResultCode())) {
                 return new ApiResponse("500", "Payment verification failed", paymentStatusResponse);
             }
+
+            // Update booking payment status
             booking.setPaymentStatus(PaymentStatus.PAID);
             booking.setBookingStatus(BookingStatus.ACTIVE);
             bookingRepository.save(booking);
@@ -134,15 +163,43 @@ public class MpesaPaymentService {
             parkingSpot.setStatus(SpotStatus.BOOKED);
             parkingSpotRepository.save(parkingSpot);
 
-            Payment payment = new Payment();
-            payment.setBooking(booking);
-            payment.setPaymentTime(LocalDateTime.now());
-            payment.setPaymentAmount(booking.getAmount());
-            payment.setPaymentRef(stkPushResponse.getCheckoutRequestID());
-            payment.setPaymentMethod(PaymentMethod.MPESA);
-            payment.setPaymentCompleted(true);
+            // Check if payment already exists for the booking
+            Optional<Payment> existingPayment = paymentRepository.findByBooking_BookingId(bookingId);
+
+            Payment payment;
+            if (existingPayment.isPresent()) {
+                // Update existing payment record
+                payment = existingPayment.get();
+                payment.setPaymentTime(LocalDateTime.now());
+                payment.setPaymentAmount(booking.getAmount());
+                payment.setPaymentRef(stkPushResponse.getCheckoutRequestID());
+                payment.setPaymentMethod(PaymentMethod.MPESA);
+                payment.setPaymentCompleted(true);
+
+                // Log payment update
+                auditLogService.logAction("Payment", payment.getPaymentId(), "UPDATE",
+                        "Payment updated with reference: " + payment.getPaymentRef()
+                );
+            } else {
+                // Create a new payment record
+                payment = new Payment();
+                payment.setBooking(booking);
+                payment.setPaymentTime(LocalDateTime.now());
+                payment.setPaymentAmount(booking.getAmount());
+                payment.setPaymentRef(stkPushResponse.getCheckoutRequestID());
+                payment.setPaymentMethod(PaymentMethod.MPESA);
+                payment.setPaymentCompleted(true);
+
+                // Log new payment creation
+                auditLogService.logAction("Payment", null, "CREATE",
+                        "New MPESA payment initiated with reference: " + payment.getPaymentRef()
+                );
+            }
+
+            // Save payment
             paymentRepository.save(payment);
 
+            // Send payment email
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a"); // 12-hour format with AM/PM
 
@@ -151,6 +208,7 @@ public class MpesaPaymentService {
             String formattedEndTime = booking.getEndTime().format(timeFormatter);
             Duration duration = Duration.between(booking.getStartTime(), booking.getEndTime());
             double durationInHours = duration.toMinutes() / 60.0;
+
             emailService.sendPaymentEmail(
                     booking.getUser().getEmail(),
                     "Payment Received - Parking Booking Receipt",
@@ -166,13 +224,8 @@ public class MpesaPaymentService {
                     booking.getParkingSpot().getSpotLocation(),
                     durationInHours
             );
+
             return new ApiResponse("200", "Payment processed successfully", payment);
-        } catch (HttpClientErrorException | HttpServerErrorException ex) {
-            return new ApiResponse(
-                    String.valueOf(ex.getStatusCode().value()),
-                    "HTTP error occurred: " + ex.getMessage(),
-                    null
-            );
         } catch (Exception ex) {
             return new ApiResponse("500", "An unexpected error occurred: " + ex.getMessage(), null);
         }
@@ -215,4 +268,3 @@ public class MpesaPaymentService {
         return "254" + last9Digits;
     }
 }
-

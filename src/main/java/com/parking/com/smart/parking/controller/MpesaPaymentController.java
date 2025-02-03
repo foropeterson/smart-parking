@@ -8,8 +8,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/mpayments")
-@Tag(name="MPESA payment",description = "Apis for managing MPEASE payments")
+@RequestMapping("/api/v1/payments")
+@Tag(name="MPESA payment",description = "Apis for managing MPESA payments")
 public class MpesaPaymentController {
     private final MpesaPaymentService mpesaPaymentService;
 

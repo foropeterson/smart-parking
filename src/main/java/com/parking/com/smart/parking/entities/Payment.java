@@ -1,3 +1,4 @@
+
 package com.parking.com.smart.parking.entities;
 
 import jakarta.persistence.*;

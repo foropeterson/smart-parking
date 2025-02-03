@@ -4,6 +4,7 @@ import com.parking.com.smart.parking.request.BookingRequest;
 import com.parking.com.smart.parking.response.ApiPaginatedResponse;
 import com.parking.com.smart.parking.response.ApiResponse;
 import com.parking.com.smart.parking.service.BookingService;
+import com.parking.com.smart.parking.service.FineService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -17,9 +18,10 @@ import java.time.LocalDateTime;
 @Tag(name="Bookings",description = "Endpoints for managing bookings")
 public class BookingController {
     private final BookingService bookingService;
-
-    public BookingController(BookingService bookingService) {
+    private final FineService fineService;
+    public BookingController(BookingService bookingService, FineService fineService) {
         this.bookingService = bookingService;
+        this.fineService = fineService;
     }
     @Operation(summary = "Book Parking", description = "Api to book a parking spot")
     @PostMapping("/create")
@@ -69,6 +71,11 @@ public class BookingController {
             @RequestParam(required = false) String paymentStatus) {
 
         return bookingService.getAllBookings(page, size, paymentStatus);
+    }
+    @Operation(summary = "Get Fines", description = "Api for getting all fines")
+    @GetMapping("/fines")
+    public ApiResponse getAllFines() {
+        return fineService.findAllFines();
     }
 }
 

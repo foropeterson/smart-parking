@@ -13,4 +13,6 @@ public interface FineRepository extends JpaRepository<Fine, Long> {
 
     Fine findByBooking_BookingId(Long bookingId);
 
+    List<Fine> findByUser_UserId(Long userid);
+
 }

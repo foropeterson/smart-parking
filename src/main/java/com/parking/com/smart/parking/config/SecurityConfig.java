@@ -39,7 +39,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomAccessDeniedHandler customAccessDeniedHandler) throws Exception {
         http
                 .authorizeHttpRequests((requests) ->
-                        requests.requestMatchers("/api/csrf-token").permitAll()
+                        requests.requestMatchers("/api/csrf-token", "/oauth2/authorization/google").permitAll()
+
                                 .requestMatchers("/api/v1/auth/public/**").permitAll()
                                 .requestMatchers("/api/v1/checkout/**").permitAll()
                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
